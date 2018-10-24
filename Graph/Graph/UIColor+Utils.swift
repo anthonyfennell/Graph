@@ -1,3 +1,11 @@
+//
+//  UIColor+Utils.swift
+//  Graph
+//
+//  Created by Anthony Fennell on 10/23/18.
+//  Copyright © 2018 Anthony Fennell. All rights reserved.
+//
+
 import UIKit
 
 public extension UIColor {

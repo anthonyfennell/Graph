@@ -1,3 +1,11 @@
+//
+//  Date+Utils.swift
+//  Graph
+//
+//  Created by Anthony Fennell on 10/23/18.
+//  Copyright © 2018 Anthony Fennell. All rights reserved.
+//
+
 import Foundation
 
 public extension Date {

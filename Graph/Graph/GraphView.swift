@@ -1,6 +1,13 @@
+//
+//  GraphView.swift
+//  Graph
+//
+//  Created by Anthony Fennell on 10/23/18.
+//  Copyright © 2018 Anthony Fennell. All rights reserved.
+//
+
 import UIKit
 import Foundation
-import PlaygroundSupport
 
 public struct Point {
     public let x: Date
@@ -26,7 +33,7 @@ public struct GraphItem {
     }
 }
 
-private enum Region {
+public enum Region {
     case title
     case verticalAxis
     case horizontalAxis
@@ -57,19 +64,18 @@ public class GraphView: UIView {
     
     // MARK: - Text
     public var titleText: String = "Title"
+    public let graphInset = UIEdgeInsets(top: 30, left: 45, bottom: 30, right: 0)
     
-    private let axisLineWidth: CGFloat = 2.0
-    private let lineWidth: CGFloat = 1.5
+    public let axisLineWidth: CGFloat = 2.0
+    public let lineWidth: CGFloat = 1.5
+    public var maxYValue: Int = 0
+    public var minYValue: Int = 0
+    public var regionSlices: [Region: CGRect] = [:]
+    
     private let circleRadius: CGFloat = 2.0
     private let dashPattern: [CGFloat] = [2.0, 3.0]
     private let zeroDashPattern: [CGFloat] = [5.0, 5.0]
-    private let graphInset = UIEdgeInsets(top: 30, left: 45, bottom: 30, right: 0)
     private let monthFormatter = DateFormatter()
-    
-    private var maxYValue: Int = 0
-    private var minYValue: Int = 0
-    private var regionSlices: [Region: CGRect] = [:]
-    
     
     // MARK: - Life Cycle
     public required init?(coder aDecoder: NSCoder) {
@@ -150,6 +156,30 @@ public class GraphView: UIView {
         context?.drawLinearGradient(gradient!, start: startPoint, end: endPoint, options: CGGradientDrawingOptions.drawsBeforeStartLocation)
     }
     
+    // MARK: - Graph Points
+    public func drawGraphPoints() {
+        // Override
+    }
+    
+    public func drawCircle(atPoint point: CGPoint) {
+        let path = UIBezierPath(arcCenter: point, radius: self.circleRadius, startAngle: 0, endAngle: 2 * CGFloat.pi, clockwise: true)
+        path.fill()
+    }
+    
+    public func drawZeroAxis() {
+        guard minYValue < 0 else {
+            return
+        }
+        let rect = regionSlices[.graph]!
+        let path = UIBezierPath()
+        path.lineWidth = self.axisLineWidth
+        path.move(to: CGPoint(x: rect.origin.x, y: columnYPoint(0)))
+        path.addLine(to: CGPoint(x: rect.origin.x + rect.size.width, y: columnYPoint(0)))
+        UIColor.red.set()
+        path.setLineDash(zeroDashPattern, count: zeroDashPattern.count, phase: 0.0)
+        path.stroke()
+    }
+
     // MARK: - Axis
     private func drawGraphAxis() {
         let path = UIBezierPath()
@@ -199,56 +229,9 @@ public class GraphView: UIView {
         path.setLineDash(dashPattern, count: dashPattern.count, phase: 2.0)
         path.stroke()
     }
-    
-    // MARK: - Graph Points
-    private func drawGraphPoints() {
-        for item in items {
-            let path = UIBezierPath()
-            path.lineWidth = self.lineWidth
-            item.color.set()
-            drawGraph(inPath: path, atPoints: item.points)
-        }
-    }
-    
-    private func drawGraph(inPath path: UIBezierPath, atPoints points: [Point]) {
-        guard points.count > 0 else {
-            return
-        }
-        
-        var cgPoint: CGPoint
-        for (index, point) in points.enumerated() {
-            cgPoint = CGPoint(x: columnXPoint(index), y: columnYPoint(point.y))
-            if index == 0 {
-                path.move(to: cgPoint)
-            } else {
-                path.addLine(to: cgPoint)
-            }
-            drawCircle(atPoint: cgPoint)
-        }
-        path.stroke()
-    }
-    
-    private func drawCircle(atPoint point: CGPoint) {
-        let path = UIBezierPath(arcCenter: point, radius: self.circleRadius, startAngle: 0, endAngle: 2 * CGFloat.pi, clockwise: true)
-        path.fill()
-    }
-    
-    private func drawZeroAxis() {
-        guard minYValue < 0 else {
-            return
-        }
-        let rect = regionSlices[.graph]!
-        let path = UIBezierPath()
-        path.lineWidth = self.axisLineWidth
-        path.move(to: CGPoint(x: rect.origin.x, y: columnYPoint(0)))
-        path.addLine(to: CGPoint(x: rect.origin.x + rect.size.width, y: columnYPoint(0)))
-        UIColor.red.set()
-        path.setLineDash(zeroDashPattern, count: zeroDashPattern.count, phase: 0.0)
-        path.stroke()
-    }
-    
-    // MARK: - Layout Point
-    private func columnXPoint(_ column: Int) -> CGFloat {
+
+    // MARK: - Point
+    public func columnXPoint(_ column: Int) -> CGFloat {
         let rect = regionSlices[.graph]!
         guard let item = items.first, item.points.count > 0 else {
             return rect.origin.x
@@ -258,7 +241,7 @@ public class GraphView: UIView {
         return rect.origin.x + CGFloat(column) * spacer
     }
     
-    private func columnYPoint(_ graphPoint: Float) -> CGFloat {
+    public func columnYPoint(_ graphPoint: Float) -> CGFloat {
         let rect = regionSlices[.graph]!
         let graphHeight = rect.size.height
         let yMinValue = rect.origin.y + graphHeight
@@ -277,15 +260,15 @@ public class GraphView: UIView {
         let proportion: CGFloat = CGFloat(relativePoint) / CGFloat(stretch) * graphHeight
         return yMinValue - proportion
     }
-    
-    // MARK: - Labels
-    private func drawTitleLabel() {
+
+    // MARK: - Axis Strings
+    public func drawTitleLabel() {
         let rect = regionSlices[.title]!
         let labelRect = CGRect(x: rect.origin.x, y: rect.origin.y, width: rect.size.width, height: rect.size.height)
         drawHorizontalCenter(string: self.titleText, in: labelRect, color: self.titleColor, fontSize: 16)
     }
     
-    private func drawYAxisLabels() {
+    public func drawYAxisLabels() {
         guard let item = items.first, item.points.count > 0 else {
             return
         }
@@ -322,7 +305,7 @@ public class GraphView: UIView {
             color, fontSize: fontSize)
     }
     
-    private func drawXAxisLabels() {
+    public func drawXAxisLabels() {
         guard let item = items.first, item.points.count > 0 else {
             return
         }
@@ -338,17 +321,16 @@ public class GraphView: UIView {
             x += spacing
         }
     }
-}
 
-extension GraphView {
-    private func drawHorizontalCenter(string: String, in rect: CGRect, color: UIColor, fontSize: CGFloat) {
+    // MARK: - Strings
+    public func drawHorizontalCenter(string: String, in rect: CGRect, color: UIColor, fontSize: CGFloat) {
         let item = makeString(text: string, rect: rect, color: color, fontSize: fontSize)
         var wordRect = rect
         wordRect.origin.x = rect.minX + (rect.width - item.wordSize.width) / 2.0
         item.nsstring.draw(in: wordRect, withAttributes: item.attributes)
     }
     
-    private func drawCenterYRightAlignedX(string: String, in rect: CGRect, color: UIColor, fontSize: CGFloat) {
+    public func drawCenterYRightAlignedX(string: String, in rect: CGRect, color: UIColor, fontSize: CGFloat) {
         let item = makeString(text: string, rect: rect, color: color, fontSize: fontSize)
         var wordRect = rect
         wordRect.origin.y = rect.minY + (rect.height - item.wordSize.height) / 2.0
@@ -356,7 +338,7 @@ extension GraphView {
         item.nsstring.draw(in: wordRect, withAttributes: item.attributes)
     }
     
-    private func makeString(text: String, rect: CGRect, color: UIColor, fontSize: CGFloat) -> StringItem {
+    public func makeString(text: String, rect: CGRect, color: UIColor, fontSize: CGFloat) -> StringItem {
         let nsstring = text as NSString
         var attributes: [NSAttributedString.Key: Any] = [
             NSAttributedString.Key.foregroundColor: color,
